@@ -14,6 +14,21 @@
         }
       },
       "ativo": true
+    },
+    {
+      "id": "cliente-1776418130713",
+      "nome": "Essencial Energia",
+      "plataformas": {
+        "google_ads": {
+          "customer_id": "5117373191",
+          "enabled": true
+        },
+        "meta_ads": {
+          "account_id": "2127743950715532",
+          "enabled": true
+        }
+      },
+      "ativo": true
     }
   ],
   "config_global": {
