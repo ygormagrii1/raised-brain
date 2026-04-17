@@ -74,6 +74,21 @@
         }
       },
       "ativo": true
+    },
+    {
+      "id": "cliente-1776418271110",
+      "nome": "Reis Baterias",
+      "plataformas": {
+        "google_ads": {
+          "customer_id": "4909379513",
+          "enabled": true
+        },
+        "meta_ads": {
+          "account_id": "390883611595540",
+          "enabled": true
+        }
+      },
+      "ativo": true
     }
   ],
   "config_global": {
