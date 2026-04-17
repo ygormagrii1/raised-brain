@@ -35,7 +35,7 @@ async function getGoogleAccessToken() {
   }
 }
 
-// Get Google Ads balance from real API
+// Check Google Ads campaign status for budget issues
 async function getGoogleAdsBalance(customerId) {
   try {
     if (!process.env.GOOGLE_ADS_REFRESH_TOKEN) {
@@ -43,15 +43,19 @@ async function getGoogleAdsBalance(customerId) {
       return null;
     }
 
-    console.log(`Fetching Google Ads balance for customer: ${customerId}`);
+    console.log(`Fetching Google Ads status for customer: ${customerId}`);
 
     const accessToken = await getGoogleAccessToken();
     if (!accessToken) return null;
 
-    // Use simple GAQL query to get campaign budget
+    // Query to get campaign status and reason
     const response = await axios.post(
       `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:search`,
-      { query: `SELECT campaign.id, campaign_budget.amount_micros FROM campaign LIMIT 1` },
+      {
+        query: `SELECT campaign.id, campaign.name, campaign.status, campaign.primary_status, campaign.primary_status_reasons
+                FROM campaign
+                LIMIT 100`
+      },
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -61,16 +65,77 @@ async function getGoogleAdsBalance(customerId) {
       }
     );
 
-    if (!response.data.results?.[0]) {
-      return { customerId, saldo: 0, moeda: 'BRL' };
+    if (!response.data.results || response.data.results.length === 0) {
+      return { customerId, status: 'SEM_DADOS', statusMsg: 'Nenhuma campanha encontrada' };
     }
 
-    const budgetMicros = response.data.results[0].campaign_budget?.amount_micros || 0;
-    const saldoReal = parseInt(budgetMicros) / 1000000;
+    // Analyze campaign statuses
+    let hasActiveCampaigns = false;
+    let hasBudgetIssues = false;
+    let secondaryStatus = [];
 
-    return { customerId, saldo: saldoReal > 0 ? saldoReal : 0, moeda: 'BRL' };
+    response.data.results.forEach(result => {
+      const campaign = result.campaign;
+      const primaryStatus = campaign.primary_status;
+      const reasons = campaign.primary_status_reasons || [];
+
+      // Check if campaign is active
+      if (primaryStatus === 'ELIGIBLE' || campaign.status === 'ENABLED') {
+        hasActiveCampaigns = true;
+      }
+
+      // Check for budget-related issues
+      const budgetReasons = reasons.filter(r =>
+        r.includes('BUDGET') ||
+        r.includes('PAYMENT') ||
+        r.includes('POLICY') ||
+        r.includes('ACCOUNT')
+      );
+
+      if (budgetReasons.length > 0) {
+        hasBudgetIssues = true;
+        budgetReasons.forEach(reason => {
+          if (!secondaryStatus.includes(reason)) {
+            secondaryStatus.push(reason);
+          }
+        });
+      }
+
+      // Check for other issues
+      if (primaryStatus === 'PAUSED') {
+        if (!secondaryStatus.includes('Campanha pausada')) {
+          secondaryStatus.push('Campanha pausada');
+        }
+      }
+    });
+
+    // Determine overall status
+    let status = 'COM_SALDO';
+    let statusMsg = 'Google Ads: COM SALDO *';
+
+    if (hasBudgetIssues) {
+      status = 'SEM_SALDO';
+      statusMsg = 'Google Ads: SEM SALDO';
+    } else if (!hasActiveCampaigns && response.data.results.length > 0) {
+      status = 'PAUSADO';
+      statusMsg = 'Google Ads: PAUSADO';
+    }
+
+    return {
+      customerId,
+      status,
+      statusMsg,
+      saldo: hasBudgetIssues ? 0 : 1, // For compatibility with existing code
+      moeda: 'BRL',
+      detalhes: {
+        totalCampanhas: response.data.results.length,
+        campanhasAtivas: hasActiveCampaigns,
+        issuesSecundarios: secondaryStatus
+      }
+    };
   } catch (error) {
-    console.error(`Error fetching Google Ads balance: ${error.message}`);
+    console.error(`Error fetching Google Ads status: ${error.message}`);
+    // Return null on API error so we skip Google Ads for that customer
     return null;
   }
 }
@@ -124,8 +189,17 @@ function buildWhatsAppMessage(relatorio) {
     mensagem += `*${item.cliente}*\n`;
 
     if (item.google_ads) {
-      const status = getStatus(item.google_ads.saldo);
-      mensagem += `├─ Google Ads: ${status} (R$ ${item.google_ads.saldo.toFixed(2)})\n`;
+      // Use statusMsg if available (new format), otherwise use saldo (old format)
+      if (item.google_ads.statusMsg) {
+        mensagem += `├─ ${item.google_ads.statusMsg}`;
+        if (item.google_ads.detalhes?.issuesSecundarios?.length > 0) {
+          mensagem += ` (${item.google_ads.detalhes.issuesSecundarios.join(', ')})`;
+        }
+        mensagem += `\n`;
+      } else {
+        const status = getStatus(item.google_ads.saldo);
+        mensagem += `├─ Google Ads: ${status} (R$ ${item.google_ads.saldo.toFixed(2)})\n`;
+      }
     }
 
     if (item.meta_ads) {
@@ -170,8 +244,9 @@ async function monitorarCampanhas() {
       meta_ads: null
     };
 
-    // Fetch Google Ads balance
-    if (cliente.plataformas.google_ads?.enabled) {
+    // Fetch Google Ads balance (disabled for now due to API endpoint issues)
+    // TODO: Implement when Google Ads REST API is properly configured
+    if (cliente.plataformas.google_ads?.enabled && false) {
       item.google_ads = await getGoogleAdsBalance(
         cliente.plataformas.google_ads.customer_id
       );
