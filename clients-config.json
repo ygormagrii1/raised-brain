@@ -59,6 +59,21 @@
         }
       },
       "ativo": true
+    },
+    {
+      "id": "cliente-1776418236566",
+      "nome": "Getpower",
+      "plataformas": {
+        "google_ads": {
+          "customer_id": "7353274494",
+          "enabled": true
+        },
+        "meta_ads": {
+          "account_id": "2543794066012327",
+          "enabled": true
+        }
+      },
+      "ativo": true
     }
   ],
   "config_global": {
