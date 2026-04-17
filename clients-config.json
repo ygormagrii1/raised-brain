@@ -89,6 +89,21 @@
         }
       },
       "ativo": true
+    },
+    {
+      "id": "cliente-1776418299311",
+      "nome": "STC Silicones",
+      "plataformas": {
+        "google_ads": {
+          "customer_id": "4547961103",
+          "enabled": true
+        },
+        "meta_ads": {
+          "account_id": "844217973225176",
+          "enabled": true
+        }
+      },
+      "ativo": true
     }
   ],
   "config_global": {
