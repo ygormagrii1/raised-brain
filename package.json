@@ -1,0 +1,28 @@
+{
+  "name": "ads-monitor-squad",
+  "version": "1.0.0",
+  "description": "Monitor Google Ads e Meta Ads balance diariamente via WhatsApp",
+  "main": "monitor-agent.js",
+  "scripts": {
+    "monitor": "node monitor-agent.js",
+    "manage-clients": "node manage-clients.js",
+    "add-client": "node manage-clients.js add",
+    "list-clients": "node manage-clients.js list",
+    "test-whatsapp": "node test-whatsapp.js"
+  },
+  "keywords": [
+    "google-ads",
+    "meta-ads",
+    "whatsapp",
+    "monitoring",
+    "twilio"
+  ],
+  "author": "Ygor",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "twilio": "^4.10.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {}
+}

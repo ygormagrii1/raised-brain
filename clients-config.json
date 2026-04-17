@@ -1,0 +1,27 @@
+{
+  "clientes": [
+    {
+      "id": "cliente-1776417348501",
+      "nome": "ABC Mudanças",
+      "plataformas": {
+        "google_ads": {
+          "customer_id": "1814267403",
+          "enabled": true
+        },
+        "meta_ads": {
+          "account_id": "1299411103601679",
+          "enabled": true
+        }
+      },
+      "ativo": true
+    }
+  ],
+  "config_global": {
+    "saldo_baixo_threshold": 100,
+    "timezone": "America/Sao_Paulo",
+    "horario_relatorio": "09:00",
+    "whatsapp_enabled": true,
+    "google_ads_enabled": true,
+    "meta_ads_enabled": true
+  }
+}
