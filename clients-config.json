@@ -29,6 +29,21 @@
         }
       },
       "ativo": true
+    },
+    {
+      "id": "cliente-1776418180337",
+      "nome": "KUKA - BR",
+      "plataformas": {
+        "google_ads": {
+          "customer_id": "8765755960",
+          "enabled": true
+        },
+        "meta_ads": {
+          "account_id": null,
+          "enabled": false
+        }
+      },
+      "ativo": true
     }
   ],
   "config_global": {
