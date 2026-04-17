@@ -4,6 +4,7 @@ require('dotenv').config({ path: './.env.local' });
 const fs = require('fs');
 const path = require('path');
 const twilio = require('twilio');
+const axios = require('axios');
 
 // Initialize Twilio client
 const twilioClient = twilio(
@@ -18,40 +19,91 @@ function loadClientsConfig() {
   return config.clientes.filter(c => c.ativo);
 }
 
-// Get Google Ads balance (mock for now - will integrate real API)
+// Get Google access token using refresh token
+async function getGoogleAccessToken() {
+  try {
+    const response = await axios.post('https://oauth2.googleapis.com/token', {
+      client_id: process.env.GOOGLE_ADS_CLIENT_ID,
+      client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET,
+      refresh_token: process.env.GOOGLE_ADS_REFRESH_TOKEN,
+      grant_type: 'refresh_token'
+    });
+    return response.data.access_token;
+  } catch (error) {
+    console.error('Error getting Google access token:', error.message);
+    return null;
+  }
+}
+
+// Get Google Ads balance from real API
 async function getGoogleAdsBalance(customerId) {
   try {
-    // TODO: Implement real Google Ads API call
-    // Using google-ads-api library or official Google Ads API client
+    if (!process.env.GOOGLE_ADS_REFRESH_TOKEN) {
+      console.warn(`⚠️  Google Ads não configurado. Execute: npm run auth-google`);
+      return null;
+    }
+
     console.log(`Fetching Google Ads balance for customer: ${customerId}`);
 
-    // Mock response for now
-    return {
-      customerId,
-      saldo: Math.random() * 500,
-      moeda: 'BRL'
-    };
+    const accessToken = await getGoogleAccessToken();
+    if (!accessToken) return null;
+
+    // Use simple GAQL query to get campaign budget
+    const response = await axios.post(
+      `https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:search`,
+      { query: `SELECT campaign.id, campaign_budget.amount_micros FROM campaign LIMIT 1` },
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.data.results?.[0]) {
+      return { customerId, saldo: 0, moeda: 'BRL' };
+    }
+
+    const budgetMicros = response.data.results[0].campaign_budget?.amount_micros || 0;
+    const saldoReal = parseInt(budgetMicros) / 1000000;
+
+    return { customerId, saldo: saldoReal > 0 ? saldoReal : 0, moeda: 'BRL' };
   } catch (error) {
     console.error(`Error fetching Google Ads balance: ${error.message}`);
     return null;
   }
 }
 
-// Get Meta Ads balance (mock for now - will integrate real API)
+// Get Meta Ads balance from real Graph API
 async function getMetaAdsBalance(accountId) {
   try {
-    // TODO: Implement real Meta Ads API call
-    // Using meta-ads-api or axios to call Graph API
     console.log(`Fetching Meta Ads balance for account: ${accountId}`);
 
-    // Mock response for now
+    // Ensure account ID has the 'act_' prefix
+    const formattedAccountId = accountId.startsWith('act_') ? accountId : `act_${accountId}`;
+
+    const response = await axios.get(
+      `https://graph.facebook.com/v21.0/${formattedAccountId}`,
+      {
+        params: {
+          fields: 'balance,currency,name',
+          access_token: process.env.META_ADS_ACCESS_TOKEN
+        }
+      }
+    );
+
+    // Balance is returned in cents (e.g., 34110 = R$ 341.10)
+    const balanceCents = parseInt(response.data.balance || '0');
+    const saldoReal = balanceCents / 100;
+
     return {
       accountId,
-      saldo: Math.random() * 500,
+      saldo: saldoReal,
       moeda: 'BRL'
     };
   } catch (error) {
-    console.error(`Error fetching Meta Ads balance: ${error.message}`);
+    console.error(`Error fetching Meta Ads balance: ${error.response?.data?.error?.message || error.message}`);
     return null;
   }
 }

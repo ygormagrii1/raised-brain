@@ -8,7 +8,8 @@
     "manage-clients": "node manage-clients.js",
     "add-client": "node manage-clients.js add",
     "list-clients": "node manage-clients.js list",
-    "test-whatsapp": "node test-whatsapp.js"
+    "test-whatsapp": "node test-whatsapp.js",
+    "auth-google": "node google-auth.js"
   },
   "keywords": [
     "google-ads",
@@ -20,9 +21,9 @@
   "author": "Ygor",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.6.0",
     "dotenv": "^16.0.3",
-    "twilio": "^4.10.0",
-    "axios": "^1.6.0"
-  },
-  "devDependencies": {}
+    "google-ads-api": "^23.0.0",
+    "twilio": "^4.10.0"
+  }
 }
